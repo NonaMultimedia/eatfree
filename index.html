@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="EatFree - Digital feeding scheme connecting donors with local food vendors to provide free meals to communities across South Africa.">
+    <meta name="theme-color" content="#6db049">
+    
+    <title>EatFree | Anywhere. Anytime. Forever.</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css?v=2" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css?v=2">
+    <!-- Custom Fonts -->
+    <link rel="stylesheet" href="assets/css/Cooper%20Black%20Regular.css?v=2">
+    <link rel="stylesheet" href="assets/css/Montserrat.css?v=2">
+    <link rel="stylesheet" href="assets/css/Kaushan%20Script.css?v=2">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/istyle3.css?v=2">    
+    <style>
+        /* Live Counter Styles */
+        .ef-counter-section {
+            background: linear-gradient(135deg, var(--ef-secondary) 0%, #d4d24a 100%);
+            padding: 2rem 0;
+            text-align: center;
+        }
+        .ef-counter-title {
+            font-family: 'Cooper Black Regular', serif;
+            color: var(--ef-dark);
+            margin-bottom: 1rem;
+        }
+        .ef-counter-value {
+            font-family: 'Cooper Black Regular', serif;
+            font-size: 3rem;
+            color: var(--ef-primary);
+        }
+        .ef-counter-label {
+            color: var(--ef-gray-700);
+            font-weight: 500;
+        }
+        .ef-progress-bar {
+            height: 20px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem auto;
+            max-width: 500px;
+        }
+        .ef-progress-fill {
+            height: 100%;
+            background: var(--ef-primary);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .ef-mode-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .ef-mode-subsidized {
+            background: var(--ef-warning);
+            color: var(--ef-dark);
+        }
+        .ef-mode-free {
+            background: var(--ef-success);
+            color: white;
+        }
+    </style>
+</head>
+<body id="page-top" data-bs-spy="scroll" data-bs-target="#mainNav" data-bs-offset="74">
+    
+    <!-- PARTICIPATION MODAL -->
+    <div id="participationModal" class="ef-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="ef-modal-content">
+            <button class="ef-close-btn" onclick="closeModal()" aria-label="Close modal">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <h2 id="modalTitle" class="ef-modal-title">Claim a Meal</h2>
+            <p class="ef-modal-subtitle">Enter your details to receive a meal voucher</p>
+            
+            <form id="claimForm" novalidate>
+                <div class="ef-input-group">
+                    <label for="p_name" class="ef-label">Full Name</label>
+                    <input type="text" id="p_name" class="ef-input" placeholder="e.g. Thabo Molefe" required autocomplete="name">
+                </div>
+                
+                <div class="ef-input-group">
+                    <label for="p_id" class="ef-label">ID Number</label>
+                    <input type="text" id="p_id" class="ef-input" placeholder="Enter your 13-digit ID number" required pattern="[0-9]{13}" maxlength="13">
+                    <small class="text-muted">Your SA ID number (13 digits)</small>
+                </div>
+                
+                <div class="ef-input-group">
+                    <label for="p_phone" class="ef-label">Phone Number (Optional)</label>
+                    <input type="tel" id="p_phone" class="ef-input" placeholder="e.g. 0821234567" autocomplete="tel">
+                </div>
+                
+                <div class="ef-input-group">
+                    <label for="p_address" class="ef-label">Residential Address</label>
+                    <input type="text" id="p_address" class="ef-input" placeholder="e.g. 123 Main Street, Soweto" required>
+                </div>
+                
+                <div class="ef-input-group">
+                    <label for="p_vendor" class="ef-label">Select Vendor</label>
+                    <select id="p_vendor" class="ef-select" required>
+                        <option value="">Choose a vendor near you</option>
+                    </select>
+                    <div id="vendorLoading" class="text-muted small mt-1" style="display:none;">
+                        <i class="bi bi-arrow-repeat spin"></i> Loading vendors...
+                    </div>
+                </div>
+                
+                <button type="submit" class="ef-btn ef-btn-primary" onclick="submitClaim(event)">
+                    <i class="bi bi-check-circle me-2"></i>Generate Voucher
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- VERIFICATION OVERLAY -->
+    <div id="successScreen" class="ef-success" role="dialog" aria-modal="true" onclick="closeSuccessOverlay(event)">
+        <div class="ef-success-box" onclick="event.stopPropagation()">
+            <div class="ef-checkmark">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <h2 class="ef-success-title">Vendor Verification</h2>
+            <p class="ef-success-text">Please enter the vendor voucher code to confirm</p>
+            
+            <div class="ef-verification-input">
+                <input type="text" id="vendorCodeInput" class="ef-input ef-input-center" 
+                       placeholder="Enter voucher code" autocomplete="off">
+            </div>
+            
+            <button class="ef-btn ef-btn-primary" onclick="verifyVendorCode()">
+                <i class="bi bi-unlock me-2"></i>Confirm Claim
+            </button>
+            
+            <p id="verifyError" class="ef-error-text" role="alert" style="display:none;">
+                <i class="bi bi-exclamation-triangle me-1"></i>Invalid voucher code. Please try again.
+            </p>
+        </div>
+    </div>
+
+    <!-- SUCCESS MODAL -->
+    <div id="successModal" class="ef-float-modal" role="dialog" aria-modal="true">
+        <div class="ef-float-card soft">
+            <div class="success-icon">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <img id="vendorLogoSuccess" class="success-logo" alt="Vendor logo" src="assets/img/vendor-placeholder.png">
+            <h2 id="successName" class="ef-success-heading">Welcome to EatFree</h2>
+            <p id="successMessage" class="ef-success-message">
+                Your meal voucher has been generated. Please collect your meal from the vendor.
+            </p>
+            <div class="ef-meal-ticket">
+                <div class="ef-ticket-header">
+                    <i class="bi bi-ticket-perforated"></i>
+                    <span>Voucher: <span id="voucherCodeDisplay">---</span></span>
+                </div>
+                <div class="ef-ticket-time" id="ticketTime"></div>
+                <div class="mt-2">
+                    <small class="text-muted">Subsidy Amount: <strong id="subsidyAmount">R5.00</strong></small>
+                </div>
+            </div>
+            <button class="ef-btn ef-btn-outline" onclick="closeSuccessModal()">
+                <i class="bi bi-house me-2"></i>Back to Home
+            </button>
+        </div>
+    </div>
+
+    <!-- VENDOR LOGIN MODAL -->
+    <div id="vendorLoginModal" class="ef-modal" role="dialog" aria-modal="true">
+        <div class="ef-login-card">
+            <button class="ef-close-btn" onclick="closeVendorLogin()" aria-label="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <div class="login-header">
+                <div class="ef-icon-circle">
+                    <i class="bi bi-shop"></i>
+                </div>
+                <h2>Vendor Access</h2>
+                <p>Sign in to manage your meals and view statements</p>
+            </div>
+
+            <form id="vendorLoginForm" novalidate>
+                <div class="ef-input-group">
+                    <label class="ef-label">Email Address</label>
+                    <input id="vendorEmail" type="email" class="ef-input" placeholder="vendor@example.com" required autocomplete="email">
+                </div>
+                
+                <div class="ef-input-group">
+                    <label class="ef-label">Password</label>
+                    <div class="ef-input-wrapper">
+                        <input id="vendorPassword" type="password" class="ef-input" placeholder="Enter password" required>
+                        <button type="button" class="ef-toggle-password" onclick="togglePassword()">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="ef-btn ef-btn-primary" onclick="vendorLogin(event)">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                </button>
+            </form>
+            
+            <p id="loginError" class="ef-error-text" role="alert" style="display:none;">
+                <i class="bi bi-exclamation-circle me-1"></i>Invalid login credentials
+            </p>
+            
+            <div class="mt-3 text-center">
+                <a href="vendor-register.html" class="text-decoration-none" style="color: var(--ef-primary);">
+                    <i class="bi bi-plus-circle"></i> Register as Vendor
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="#page-top">
+                <span class="ef-brand-icon"><i class="bi bi-heart-fill"></i></span>
+                <span class="ef-brand-text">EatFree</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" 
+                    aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#services">How It Works</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#impact">Impact</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#vendors">Our Vendors</a></li>
+                    <li class="nav-item"><a class="nav-link ef-nav-cta" href="donate.html">
+                        <i class="bi bi-heart-fill me-1"></i>Donate
+                    </a></li>
+                    <li class="nav-item"><a class="nav-link" href="javascript:void(0)" onclick="openVendorLogin()">
+                        <i class="bi bi-shop me-1"></i>Vendor Login
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="masthead">
+        <div class="container">
+            <div class="intro-text">
+                <div class="intro-lead-in">Nourishing Communities</div>
+                <div class="intro-heading">Free Meals.<br>Local Vendors.<br>Real Impact.</div>
+                <p class="intro-subtitle">Connecting generous donors with township food vendors to feed thousands of children and families daily.</p>
+                <div class="intro-actions">
+                    <a class="ef-btn ef-btn-primary ef-btn-lg" role="button" onclick="openModal()">
+                        <i class="bi bi-ticket-perforated me-2"></i>Claim Your Meal
+                    </a>
+                    <a class="ef-btn ef-btn-outline-light ef-btn-lg" href="donate.html">
+                        <i class="bi bi-heart-fill me-2"></i>Donate Now
+                    </a>
+                </div>
+                <div class="ef-hero-stats">
+                    <div class="ef-stat">
+                        <span class="ef-stat-number" id="totalMealsServed">-</span>
+                        <span class="ef-stat-desc">Meals Served</span>
+                    </div>
+                    <div class="ef-stat">
+                        <span class="ef-stat-number" id="activeVendors">-</span>
+                        <span class="ef-stat-desc">Active Vendors</span>
+                    </div>
+                    <div class="ef-stat">
+                        <span class="ef-stat-number" id="totalDonations">-</span>
+                        <span class="ef-stat-desc">Donations (R)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ef-hero-pattern"></div>
+    </header>
+
+    <!-- Live Counter Section -->
+    <section class="ef-counter-section">
+        <div class="container">
+            <h2 class="ef-counter-title"><i class="bi bi-bullseye"></i> EatFree Milestone</h2>
+            <div id="modeBadge" class="ef-mode-badge ef-mode-subsidized mb-3">
+                <i class="bi bi-lightning"></i> Subsidized Mode Active
+            </div>
+            <p class="ef-counter-label">Meals remaining until FULL FREE mode</p>
+            <div class="ef-counter-value" id="mealsUntilFree">-</div>
+            <div class="ef-progress-bar">
+                <div class="ef-progress-fill" id="milestoneProgress" style="width: 0%"></div>
+            </div>
+            <p class="small">
+                Current Wallet: <strong id="walletBalance">R-</strong> / 
+                Target: <strong id="targetThreshold">R-</strong>
+                (<span id="percentComplete">0%</span>)
+            </p>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="page-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading">How EatFree Works</h2>
+                    <h3 class="section-subheading">A simple three-step process connecting hearts, vendors, and hungry stomachs.</h3>
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-md-4 mb-4">
+                    <div class="ef-service-card">
+                        <div class="ef-service-icon ef-bg-green">
+                            <i class="bi bi-heart-fill"></i>
+                        </div>
+                        <h4 class="section-heading">1. Donors Give</h4>
+                        <p class="text-muted">Community members and businesses donate funds to sponsor meals. Every donation is tracked transparently.</p>
+                        <div class="ef-service-flow">
+                            <i class="bi bi-arrow-down"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="ef-service-card">
+                        <div class="ef-service-icon ef-bg-gold">
+                            <i class="bi bi-shop"></i>
+                        </div>
+                        <h4 class="section-heading">2. Vendors Serve</h4>
+                        <p class="text-muted">Local township vendors prepare fresh, nutritious meals using funds from the EatFree pool.</p>
+                        <div class="ef-service-flow">
+                            <i class="bi bi-arrow-down"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="ef-service-card">
+                        <div class="ef-service-icon ef-bg-green">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <h4 class="section-heading">3. Families Eat</h4>
+                        <p class="text-muted">Children and families claim free meals at participating vendors—no stigma, just nourishment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Impact Gallery -->
+    <section class="bg-light page-section" id="impact">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading">Our Impact in Action</h2>
+                    <h3 class="section-subheading">Real moments of joy from communities across South Africa.</h3>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-sm-6 col-lg-4">
+                    <div class="ef-impact-card">
+                        <div class="ef-impact-image">
+                            <img class="img-fluid" src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop" alt="Children enjoying meals together">
+                            <div class="ef-impact-overlay">
+                                <i class="bi bi-heart-fill"></i>
+                            </div>
+                        </div>
+                        <div class="ef-impact-content">
+                            <h4>Garankuwa</h4>
+                            <p class="text-muted">Kota Palace feeding 200+ children daily</p>
+                            <div class="ef-impact-meta">
+                                <span><i class="bi bi-geo-alt"></i> Gauteng</span>
+                                <span><i class="bi bi-calendar"></i> Daily</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <div class="ef-impact-card">
+                        <div class="ef-impact-image">
+                            <img class="img-fluid" src="https://images.unsplash.com/photo-1593113598332-cd288d649433?w=600&h=400&fit=crop" alt="Community feeding">
+                            <div class="ef-impact-overlay">
+                                <i class="bi bi-heart-fill"></i>
+                            </div>
+                        </div>
+                        <div class="ef-impact-content">
+                            <h4>Soshanguve</h4>
+                            <p class="text-muted">Mama's Kitchen school feeding program</p>
+                            <div class="ef-impact-meta">
+                                <span><i class="bi bi-geo-alt"></i> Gauteng</span>
+                                <span><i class="bi bi-calendar"></i> Weekdays</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                    <div class="ef-impact-card">
+                        <div class="ef-impact-image">
+                            <img class="img-fluid" src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=600&h=400&fit=crop" alt="School feeding">
+                            <div class="ef-impact-overlay">
+                                <i class="bi bi-heart-fill"></i>
+                            </div>
+                        </div>
+                        <div class="ef-impact-content">
+                            <h4>Mabopane</h4>
+                            <p class="text-muted">FeedUp Schools nutrition initiative</p>
+                            <div class="ef-impact-meta">
+                                <span><i class="bi bi-geo-alt"></i> Gauteng</span>
+                                <span><i class="bi bi-calendar"></i> School Days</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Timeline -->
+    <section id="about" class="page-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading">Our Journey</h2>
+                    <h3 class="section-subheading">From a small idea to a nationwide movement.</h3>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-12">
+                    <ul class="timeline">
+                        <li class="timeline-item">
+                            <div class="timeline-image ef-cta-circle">
+                                <h4>2026</h4>
+                            </div>
+                            <div class="timeline-panel">
+                                <div class="timeline-heading">
+                                    <h4>2026</h4>
+                                    <h4 class="subheading">Foundation & Launch</h4>
+                                </div>
+                                <div class="timeline-body">
+                                    <p class="text-muted">EatFree launches with 50+ vendors in Tshwane, connecting donors directly with township food businesses to create sustainable feeding cycles.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="timeline-item timeline-inverted">
+                            <div class="timeline-image ef-cta-circle">
+                                <h4>2027</h4>
+                            </div>
+                            <div class="timeline-panel">
+                                <div class="timeline-heading">
+                                    <h4>2027</h4>
+                                    <h4 class="subheading">Expansion</h4>
+                                </div>
+                                <div class="timeline-body">
+                                    <p class="text-muted">Strategic partnerships with corporates and NGOs enable bulk funding. Platform expands to all 9 provinces.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="timeline-item">
+                            <div class="timeline-image ef-cta-circle">
+                                <h4>2028</h4>
+                            </div>
+                            <div class="timeline-panel">
+                                <div class="timeline-heading">
+                                    <h4>2028</h4>
+                                    <h4 class="subheading">Full Free Mode</h4>
+                                </div>
+                                <div class="timeline-body">
+                                    <p class="text-muted">Reaching our milestone target, EatFree transitions to FULL FREE meals for all beneficiaries across South Africa.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="timeline-item timeline-inverted">
+                            <div class="timeline-image ef-cta-circle">
+                                <h4>Join<br>Our<br>Story!</h4>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vendors Section -->
+    <section id="vendors" class="bg-light page-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading">Featured Vendors</h2>
+                    <h3 class="section-subheading">Local heroes serving their communities.</h3>
+                </div>
+            </div>
+            <div class="row g-4" id="vendorsGrid">
+                <!-- Populated by JavaScript -->
+            </div>
+            <div class="text-center mt-5">
+                <a href="vendor-register.html" class="ef-btn ef-btn-outline">
+                    <i class="bi bi-plus-circle me-2"></i>Become a Vendor
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="page-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading text-white">Get In Touch</h2>
+                    <h3 class="section-subheading text-white-50">Want to donate, partner, or learn more?</h3>
+                </div>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <form id="contactForm" class="ef-contact-form" onsubmit="submitContact(event)">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input class="ef-input" type="text" id="contactName" placeholder="Your Name *" required>
+                            </div>
+                            <div class="col-md-6">
+                                <input class="ef-input" type="email" id="contactEmail" placeholder="Your Email *" required>
+                            </div>
+                            <div class="col-12">
+                                <textarea class="ef-input" id="contactMessage" rows="5" placeholder="Your Message *" required></textarea>
+                            </div>
+                            <div class="col-12 text-center">
+                                <button class="ef-btn ef-btn-light ef-btn-lg" type="submit">
+                                    <i class="bi bi-send me-2"></i>Send Message
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="ef-footer">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <span class="ef-copyright">
+                        <i class="bi bi-heart-fill me-1"></i> EatFree 2026+ — Powered by WiseLink PTY (LTD)
+                    </span>
+                </div>
+                <div class="col-md-4 text-center">
+                    <ul class="ef-social-list">
+                        <li><a href="https://www.tiktok.com/@eatfr.ee" aria-label="TikTok"><i class="bi bi-tiktok"></i></a></li>
+                        <li><a href="https://www.facebook.com/eatzfree/" aria-label="Facebook"><i class="bi bi-facebook"></i></a></li>
+                        <li><a href="#" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a></li>
+                        <li><a href="#" aria-label="Instagram"><i class="bi bi-instagram"></i></a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 text-end">
+                    <ul class="ef-quicklinks">
+                        <li><a href="admin-login.php">Admin</a></li>
+                        <li><a href="policies.html">Privacy</a></li>
+                        <li><a href="terms.html">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js?v=2"></script>
+    
+    <script>
+        // API Base URL
+        const API_BASE = 'api/';
+        
+        // Current voucher data
+        let currentVoucher = null;
+        
+        // Load dashboard data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            loadVendors();
+            initNavbarBehavior();
+            setupModalAccessibility();
+        });
+        
+        // Load dashboard statistics
+        async function loadDashboardData() {
+            try {
+                const response = await fetch(API_BASE + 'get-dashboard-data.php?type=admin');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    
+                    // Update hero stats
+                    document.getElementById('totalMealsServed').textContent = 
+                        data.meals.total.toLocaleString();
+                    document.getElementById('activeVendors').textContent = 
+                        data.vendors.active.toLocaleString();
+                    document.getElementById('totalDonations').textContent = 
+                        'R' + Math.floor(data.wallet.total_received).toLocaleString();
+                    
+                    // Update milestone counter
+                    const milestone = data.milestone;
+                    document.getElementById('mealsUntilFree').textContent = 
+                        milestone.meals_until_free.toLocaleString();
+                    document.getElementById('walletBalance').textContent = 
+                        'R' + milestone.current_balance.toLocaleString();
+                    document.getElementById('targetThreshold').textContent = 
+                        'R' + milestone.target_threshold.toLocaleString();
+                    document.getElementById('percentComplete').textContent = 
+                        milestone.percent_complete + '%';
+                    document.getElementById('milestoneProgress').style.width = 
+                        milestone.percent_complete + '%';
+                    
+                    // Update mode badge
+                    const modeBadge = document.getElementById('modeBadge');
+                    if (data.settings.current_mode === 'full_free') {
+                        modeBadge.className = 'ef-mode-badge ef-mode-free mb-3';
+                        modeBadge.innerHTML = '<i class="bi bi-gift"></i> FULL FREE Mode Active!';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+            }
+        }
+        
+        // Load vendors for dropdown
+        async function loadVendors() {
+            const vendorSelect = document.getElementById('p_vendor');
+            const loadingDiv = document.getElementById('vendorLoading');
+            
+            loadingDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch(API_BASE + 'get-vendors.php');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const vendors = result.data.vendors;
+                    const grouped = result.data.grouped;
+                    
+                    // Clear existing options except first
+                    vendorSelect.innerHTML = '<option value="">Choose a vendor near you</option>';
+                    
+                    // Add vendors grouped by province
+                    for (const [province, provinceVendors] of Object.entries(grouped)) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = province;
+                        
+                        provinceVendors.forEach(vendor => {
+                            const option = document.createElement('option');
+                            option.value = vendor.id;
+                            option.textContent = `${vendor.business_name} - ${vendor.city} (${vendor.meals_remaining} meals left)`;
+                            optgroup.appendChild(option);
+                        });
+                        
+                        vendorSelect.appendChild(optgroup);
+                    }
+                    
+                    // Also populate vendors grid
+                    populateVendorsGrid(vendors.slice(0, 6));
+                }
+            } catch (error) {
+                console.error('Failed to load vendors:', error);
+                vendorSelect.innerHTML = '<option value="">Unable to load vendors</option>';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+        
+        // Populate vendors grid
+        function populateVendorsGrid(vendors) {
+            const grid = document.getElementById('vendorsGrid');
+            if (!grid || !vendors.length) return;
+            
+            grid.innerHTML = vendors.map(v => `
+                <div class="col-md-4">
+                    <div class="ef-impact-card">
+                        <div class="ef-impact-image">
+                            <img src="assets/img/vendor-placeholder.png" alt="${v.business_name}">
+                            <div class="ef-impact-overlay">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                        </div>
+                        <div class="ef-impact-content">
+                            <h4>${v.business_name}</h4>
+                            <p class="text-muted">${v.city}, ${v.province}</p>
+                            <div class="ef-impact-meta">
+                                <span><i class="bi bi-utensils"></i> ${v.meals_remaining} meals left</span>
+                                <span><i class="bi bi-star-fill" style="color: var(--ef-secondary);"></i> Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Modal Functions
+        function openModal() {
+            const modal = document.getElementById('participationModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => document.getElementById('p_name')?.focus(), 100);
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('participationModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            document.getElementById('claimForm')?.reset();
+        }
+        
+        function showSuccess() {
+            const overlay = document.getElementById('successScreen');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => document.getElementById('vendorCodeInput')?.focus(), 100);
+        }
+        
+        function closeSuccessOverlay(event) {
+            if (event.target === event.currentTarget) {
+                const overlay = document.getElementById('successScreen');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+                document.getElementById('vendorCodeInput').value = '';
+                document.getElementById('verifyError').style.display = 'none';
+            }
+        }
+        
+        function openVendorLogin() {
+            window.location.href = 'login.html';
+        }
+        
+        function closeVendorLogin() {
+            const modal = document.getElementById('vendorLoginModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            document.getElementById('vendorLoginForm')?.reset();
+            document.getElementById('loginError').style.display = 'none';
+        }
+        
+        function togglePassword() {
+            const input = document.getElementById('vendorPassword');
+            const icon = document.querySelector('.ef-toggle-password i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
+        
+        // Submit claim (generate voucher)
+        async function submitClaim(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('p_name').value.trim();
+            const idNumber = document.getElementById('p_id').value.trim();
+            const phone = document.getElementById('p_phone').value.trim();
+            const address = document.getElementById('p_address').value.trim();
+            const vendorId = document.getElementById('p_vendor').value;
+            
+            if (!name || !idNumber || !address || !vendorId) {
+                alert('Please complete all required fields');
+                return;
+            }
+            
+            if (!/^\d{13}$/.test(idNumber)) {
+                alert('Please enter a valid 13-digit South African ID number');
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Processing...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(API_BASE + 'generate-voucher.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        full_name: name,
+                        id_number: idNumber,
+                        phone: phone,
+                        address: address,
+                        vendor_id: parseInt(vendorId)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentVoucher = result.data;
+                    closeModal();
+                    showSuccessModal(result.data);
+                } else {
+                    alert(result.message || 'Failed to generate voucher. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        function showSuccessModal(data) {
+            const modal = document.getElementById('successModal');
+            document.getElementById('successName').textContent = `Welcome, ${data.beneficiary_name}`;
+            document.getElementById('voucherCodeDisplay').textContent = data.voucher_code;
+            document.getElementById('ticketTime').textContent = new Date().toLocaleString('en-ZA');
+            document.getElementById('subsidyAmount').textContent = 'R' + data.subsidy_amount.toFixed(2);
+            
+            modal.classList.add('active');
+        }
+        
+        function closeSuccessModal() {
+            const modal = document.getElementById('successModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            document.getElementById('claimForm')?.reset();
+            currentVoucher = null;
+        }
+        
+        // Verify voucher (vendor)
+        async function verifyVendorCode() {
+            const input = document.getElementById('vendorCodeInput').value.trim();
+            const error = document.getElementById('verifyError');
+            
+            if (!input) {
+                error.style.display = 'flex';
+                return;
+            }
+            
+            // For demo, show success
+            // In production, this would verify against the backend
+            error.style.display = 'none';
+            document.getElementById('successScreen').classList.remove('active');
+            
+            // Show the success modal with voucher details
+            if (currentVoucher) {
+                showSuccessModal(currentVoucher);
+            } else {
+                alert('Voucher verified successfully!');
+                closeSuccessOverlay({ target: document.getElementById('successScreen') });
+            }
+        }
+        
+        // Vendor login
+        async function vendorLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('vendorEmail').value.trim();
+            const password = document.getElementById('vendorPassword').value;
+            const error = document.getElementById('loginError');
+            
+            try {
+                const response = await fetch(API_BASE + 'vendor-login.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Store vendor data and redirect
+                    localStorage.setItem('eatfree_vendor', JSON.stringify(result.data));
+                    window.location.href = 'vendor/dashboard.html';
+                } else {
+                    error.style.display = 'flex';
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                error.style.display = 'flex';
+            }
+        }
+        
+        // Contact form
+        function submitContact(event) {
+            event.preventDefault();
+            alert('Thank you for your message! We will get back to you soon.');
+            document.getElementById('contactForm').reset();
+        }
+        
+        // Navbar behavior
+        function initNavbarBehavior() {
+            const mainNav = document.getElementById('mainNav');
+            if (!mainNav) return;
+            
+            const handleScroll = () => {
+                if (window.scrollY > 100) {
+                    mainNav.classList.add('navbar-shrink');
+                } else {
+                    mainNav.classList.remove('navbar-shrink');
+                }
+            };
+            
+            window.addEventListener('scroll', handleScroll);
+            handleScroll();
+        }
+        
+        // Modal accessibility
+        function setupModalAccessibility() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeVendorLogin();
+                    document.getElementById('successScreen')?.classList.remove('active');
+                    document.getElementById('successModal')?.classList.remove('active');
+                }
+            });
+            
+            // Close on outside click
+            document.querySelectorAll('.ef-modal, .ef-success, .ef-float-modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        if (modal.classList.contains('ef-modal')) closeModal();
+                        if (modal.classList.contains('ef-success')) closeSuccessOverlay(e);
+                        if (modal.classList.contains('ef-float-modal')) closeSuccessModal();
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>

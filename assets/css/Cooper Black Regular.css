@@ -1,0 +1,7 @@
+/* Cooper Black Regular Font */
+@font-face {
+    font-family: 'Cooper Black Regular';
+    src: local('Cooper Black'), local('CooperBlack');
+    font-weight: normal;
+    font-style: normal;
+}

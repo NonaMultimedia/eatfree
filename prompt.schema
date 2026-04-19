@@ -1,0 +1,214 @@
+-- ============================================
+-- EatFree UPGRADED DATABASE SCHEMA (HYBRID SYSTEM)
+-- ============================================
+
+CREATE DATABASE IF NOT EXISTS eatfree CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE eatfree;
+
+-- ============================================
+-- 1. ADMINISTRATORS
+-- ============================================
+CREATE TABLE administrators (
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE,
+    password_hash VARCHAR(255),
+    email VARCHAR(100),
+    full_name VARCHAR(100),
+    access_code VARCHAR(10),
+    role ENUM('super_admin','admin','manager') DEFAULT 'admin',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- 2. PLATFORM WALLET (NEW)
+-- Central fund pool
+-- ============================================
+CREATE TABLE platform_wallet (
+    wallet_id INT PRIMARY KEY AUTO_INCREMENT,
+    total_balance DECIMAL(12,2) DEFAULT 0.00,
+    reserved_balance DECIMAL(12,2) DEFAULT 0.00,
+    available_balance DECIMAL(12,2) GENERATED ALWAYS AS (total_balance - reserved_balance) STORED,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO platform_wallet (total_balance, reserved_balance) VALUES (0,0);
+
+-- ============================================
+-- 3. VENDORS (UPDATED)
+-- ============================================
+CREATE TABLE vendors (
+    vendor_id INT AUTO_INCREMENT PRIMARY KEY,
+    business_name VARCHAR(100),
+    contact_person VARCHAR(100),
+    email VARCHAR(100),
+    phone VARCHAR(20),
+
+    province VARCHAR(50),
+
+    meals_remaining INT DEFAULT 0,
+
+    -- HYBRID SYSTEM
+    wallet_balance DECIMAL(12,2) DEFAULT 0.00,
+    reserved_earnings DECIMAL(12,2) DEFAULT 0.00,
+    total_earnings DECIMAL(12,2) DEFAULT 0.00,
+
+    status ENUM('active','inactive','pending') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- 4. BENEFACTORS
+-- ============================================
+CREATE TABLE benefactors (
+    benefactor_id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(100),
+    email VARCHAR(100),
+    total_donated DECIMAL(12,2) DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- 5. DONATIONS (UPDATED)
+-- ============================================
+CREATE TABLE donations (
+    donation_id INT AUTO_INCREMENT PRIMARY KEY,
+    donation_code VARCHAR(30) UNIQUE,
+
+    amount DECIMAL(10,2),
+    points INT,
+
+    donor_name VARCHAR(100),
+    donor_email VARCHAR(100),
+
+    status ENUM('pending','completed') DEFAULT 'completed',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- 6. BENEFICIARIES
+-- ============================================
+CREATE TABLE beneficiaries (
+    beneficiary_id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(100),
+    phone VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- 7. MEAL CLAIMS (UPDATED HYBRID FLOW)
+-- ============================================
+CREATE TABLE meal_claims (
+    claim_id INT AUTO_INCREMENT PRIMARY KEY,
+    claim_code VARCHAR(30) UNIQUE,
+
+    beneficiary_id INT,
+    vendor_id INT,
+
+    meal_value DECIMAL(8,2) DEFAULT 30.00,
+
+    status ENUM('pending','completed') DEFAULT 'completed',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (beneficiary_id) REFERENCES beneficiaries(beneficiary_id),
+    FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id)
+);
+
+-- ============================================
+-- 8. VENDOR PAYOUTS (NEW)
+-- Tracks withdrawals instead of instant payouts
+-- ============================================
+CREATE TABLE vendor_payouts (
+    payout_id INT AUTO_INCREMENT PRIMARY KEY,
+    vendor_id INT,
+
+    amount DECIMAL(12,2),
+
+    status ENUM('pending','approved','paid') DEFAULT 'pending',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id)
+);
+
+-- ============================================
+-- 9. TRANSACTIONS LOG (NEW CORE SYSTEM TABLE)
+-- ============================================
+CREATE TABLE transactions (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+
+    type ENUM('donation','claim','vendor_credit','vendor_withdrawal'),
+
+    amount DECIMAL(12,2),
+
+    reference_id INT,
+    description VARCHAR(255),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- STORED PROCEDURE: PROCESS DONATION (UPDATED)
+-- ============================================
+DELIMITER //
+
+CREATE PROCEDURE sp_process_donation(
+    IN p_amount DECIMAL(10,2),
+    IN p_name VARCHAR(100),
+    IN p_email VARCHAR(100)
+)
+BEGIN
+    DECLARE v_code VARCHAR(30);
+
+    SET v_code = CONCAT('EF-DON-', UPPER(SUBSTRING(MD5(RAND()),1,8)));
+
+    INSERT INTO donations (donation_code, amount, points, donor_name, donor_email)
+    VALUES (v_code, p_amount, p_amount, p_name, p_email);
+
+    UPDATE platform_wallet
+    SET total_balance = total_balance + p_amount;
+
+    INSERT INTO transactions (type, amount, description)
+    VALUES ('donation', p_amount, 'Donation received');
+
+END //
+
+-- ============================================
+-- STORED PROCEDURE: PROCESS MEAL CLAIM (HYBRID)
+-- ============================================
+CREATE PROCEDURE sp_process_claim(
+    IN p_beneficiary INT,
+    IN p_vendor INT
+)
+BEGIN
+    DECLARE v_code VARCHAR(30);
+    DECLARE v_meal DECIMAL(8,2);
+
+    SET v_meal = 30;
+    SET v_code = CONCAT('EF-CLAIM-', UPPER(SUBSTRING(MD5(RAND()),1,6)));
+
+    INSERT INTO meal_claims (claim_code, beneficiary_id, vendor_id, meal_value)
+    VALUES (v_code, p_beneficiary, p_vendor, v_meal);
+
+    -- Deduct from platform
+    UPDATE platform_wallet
+    SET reserved_balance = reserved_balance + v_meal;
+
+    -- Credit vendor (but not withdrawable yet)
+    UPDATE vendors
+    SET reserved_earnings = reserved_earnings + v_meal,
+        meals_remaining = meals_remaining - 1,
+        total_earnings = total_earnings + v_meal
+    WHERE vendor_id = p_vendor;
+
+    INSERT INTO transactions (type, amount, reference_id, description)
+    VALUES ('claim', v_meal, p_vendor, 'Meal claimed');
+
+END //
+
+DELIMITER ;
+
+-- ============================================
+-- END
+-- ============================================
