@@ -263,7 +263,7 @@ try {
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
                 <a href="vendors.php" class="admin-sidebar-item">
-                    <i class="bi bi-shop"></i> Vendors
+                    <i class="bi bi-shop"></i> Shops
                 </a>
                 <a href="withdrawals.php" class="admin-sidebar-item">
                     <i class="bi bi-cash-stack"></i> Withdrawals
@@ -316,13 +316,14 @@ try {
                 <div class="row g-4 mb-4">
                     <div class="col-md-3">
                         <div class="eco-card dark">
-                            <div class="eco-label white">Wallet Balance</div>
+                            <div class="eco-label white">Meal Funds</div>
                             <div class="eco-value white">R<?php echo number_format($capacity['wallet_balance'], 0); ?></div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="eco-card">
                             <div class="eco-label">Total Meals Available</div>
+                            <div class="eco-label">e.g. Total Meals/R5</div>
                             <div class="eco-value"><?php echo number_format($capacity['total_meals_available']); ?></div>
                         </div>
                     </div>
@@ -369,14 +370,14 @@ try {
                             
                             <div class="formula-box">
                                 <strong>Total Meals Available</strong><br>
-                                = Wallet Balance ÷ Subsidy Amount<br>
+                                = Meal Funds ÷ Subsidy Amount<br>
                                 = R<?php echo number_format($capacity['wallet_balance'], 2); ?> ÷ R<?php echo $settings['subsidy_amount']; ?><br>
                                 = <?php echo number_format($capacity['total_meals_available']); ?> meals
                             </div>
                             
                             <div class="formula-box">
                                 <strong>Max Vendors</strong><br>
-                                = Total Meals ÷ Meals per Vendor<br>
+                                = Total Meals ÷ Max Meals per Vendor<br>
                                 = <?php echo number_format($capacity['total_meals_available']); ?> ÷ <?php echo $settings['meals_per_vendor']; ?><br>
                                 = <?php echo number_format($capacity['max_vendors']); ?> vendors
                             </div>

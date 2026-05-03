@@ -212,7 +212,7 @@ HTML;
             $subscription = $stmt->fetch();
             
             if ($subscription) {
-                // Update vendor subscription status and add meals
+                // Activate Membership BUT DO NOT approve vendor yet
                 $stmt = $db->prepare("
                     UPDATE vendors 
                     SET subscription_status = 'active',
@@ -221,6 +221,14 @@ HTML;
                     WHERE id = ?
                 ");
                 $stmt->execute([$subscription['meals_included'], $subscription['vendor_id']]);
+                
+                // Optional: flag vendor as "payment received"
+                $stmt = $db->prepare("
+                    UPDATE vendors 
+                    SET payment_verified = 1
+                    WHERE id = ?
+                ");
+                $stmt->execute([$subscription['vendor_id']]);
                 
                 error_log("[" . date('Y-m-d H:i:s') . "] Subscription processed successfully. ID: $subscriptionId, Vendor: {$subscription['vendor_id']}\n", 3, $logFile);
             }

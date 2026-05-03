@@ -106,10 +106,10 @@
                 <div class="ef-input-group">
                     <label for="p_vendor" class="ef-label">Select Vendor</label>
                     <select id="p_vendor" class="ef-select" required>
-                        <option value="">Choose a vendor near you</option>
+                        <option value="">Choose a chef near you</option>
                     </select>
                     <div id="vendorLoading" class="text-muted small mt-1" style="display:none;">
-                        <i class="bi bi-arrow-repeat spin"></i> Loading vendors...
+                        <i class="bi bi-arrow-repeat spin"></i> Loading chefs...
                     </div>
                 </div>
                 
@@ -126,8 +126,8 @@
             <div class="ef-checkmark">
                 <i class="bi bi-shield-check"></i>
             </div>
-            <h2 class="ef-success-title">Vendor Verification</h2>
-            <p class="ef-success-text">Please enter the vendor voucher code to confirm</p>
+            <h2 class="ef-success-title">Chef Verification</h2>
+            <p class="ef-success-text">Please enter the chef voucher code to confirm</p>
             
             <div class="ef-verification-input">
                 <input type="text" id="vendorCodeInput" class="ef-input ef-input-center" 
@@ -139,7 +139,7 @@
             </button>
             
             <p id="verifyError" class="ef-error-text" role="alert" style="display:none;">
-                <i class="bi bi-exclamation-triangle me-1"></i>Invalid voucher code. Please try again.
+                <i class="bi bi-exclamation-triangle me-1"></i>Incorrect voucher code. Please try again.
             </p>
         </div>
     </div>
@@ -153,7 +153,7 @@
             <img id="vendorLogoSuccess" class="success-logo" alt="Vendor logo" src="assets/img/vendor-placeholder.png">
             <h2 id="successName" class="ef-success-heading">Welcome to EatFree</h2>
             <p id="successMessage" class="ef-success-message">
-                Your meal voucher has been generated. Please collect your meal from the vendor.
+                Your meal voucher has been generated. Please collect your meal from the counter.
             </p>
             <div class="ef-meal-ticket">
                 <div class="ef-ticket-header">
@@ -162,7 +162,7 @@
                 </div>
                 <div class="ef-ticket-time" id="ticketTime"></div>
                 <div class="mt-2">
-                    <small class="text-muted">Subsidy Amount: <strong id="subsidyAmount">R5.00</strong></small>
+                    <small class="text-muted">Eatfree Discount: <strong id="subsidyAmount">R5.00</strong></small>
                 </div>
             </div>
             <button class="ef-btn ef-btn-outline" onclick="closeSuccessModal()">
@@ -181,7 +181,7 @@
                 <div class="ef-icon-circle">
                     <i class="bi bi-shop"></i>
                 </div>
-                <h2>Vendor Access</h2>
+                <h2>Chef Access</h2>
                 <p>Sign in to manage your meals and view statements</p>
             </div>
 
@@ -207,12 +207,12 @@
             </form>
             
             <p id="loginError" class="ef-error-text" role="alert" style="display:none;">
-                <i class="bi bi-exclamation-circle me-1"></i>Invalid login credentials
+                <i class="bi bi-exclamation-circle me-1"></i>Incorrect sign-in 
             </p>
             
             <div class="mt-3 text-center">
                 <a href="vendor-register.html" class="text-decoration-none" style="color: var(--ef-primary);">
-                    <i class="bi bi-plus-circle"></i> Register as Vendor
+                    <i class="bi bi-plus-circle"></i> Register as Chef
                 </a>
             </div>
         </div>
@@ -234,12 +234,12 @@
                     <li class="nav-item"><a class="nav-link" href="#services">How It Works</a></li>
                     <li class="nav-item"><a class="nav-link" href="#impact">Impact</a></li>
                     <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#vendors">Our Vendors</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#vendors">Our Chefs</a></li>
                     <li class="nav-item"><a class="nav-link ef-nav-cta" href="donate.html">
-                        <i class="bi bi-heart-fill me-1"></i>Donate
+                        <i class="bi bi-heart-fill me-1"></i>Feed More
                     </a></li>
                     <li class="nav-item"><a class="nav-link" href="javascript:void(0)" onclick="openVendorLogin()">
-                        <i class="bi bi-shop me-1"></i>Vendor Login
+                        <i class="bi bi-shop me-1"></i>Hello, Chef.
                     </a></li>
                 </ul>
             </div>
@@ -251,14 +251,14 @@
         <div class="container">
             <div class="intro-text">
                 <div class="intro-lead-in">Nourishing Communities</div>
-                <div class="intro-heading">Free Meals.<br>Local Vendors.<br>Real Impact.</div>
-                <p class="intro-subtitle">Connecting generous donors with township food vendors to feed thousands of children and families daily.</p>
+                <div class="intro-heading">Real Meals.<br>Real People.<br>Real Impact.</div>
+                <p class="intro-subtitle">Connecting hearts to feed thousands of children and families daily.</p>
                 <div class="intro-actions">
                     <a class="ef-btn ef-btn-primary ef-btn-lg" role="button" onclick="openModal()">
-                        <i class="bi bi-ticket-perforated me-2"></i>Claim Your Meal
+                        <i class="bi bi-ticket-perforated me-2"></i>Eat Meal
                     </a>
                     <a class="ef-btn ef-btn-outline-light ef-btn-lg" href="donate.html">
-                        <i class="bi bi-heart-fill me-2"></i>Donate Now
+                        <i class="bi bi-heart-fill me-2"></i>Feed More
                     </a>
                 </div>
                 <div class="ef-hero-stats">
@@ -268,11 +268,11 @@
                     </div>
                     <div class="ef-stat">
                         <span class="ef-stat-number" id="activeVendors">-</span>
-                        <span class="ef-stat-desc">Active Vendors</span>
+                        <span class="ef-stat-desc">Active Chefs</span>
                     </div>
                     <div class="ef-stat">
                         <span class="ef-stat-number" id="totalDonations">-</span>
-                        <span class="ef-stat-desc">Donations (R)</span>
+                        <span class="ef-stat-desc">Total Meals</span>
                     </div>
                 </div>
             </div>
@@ -285,15 +285,15 @@
         <div class="container">
             <h2 class="ef-counter-title"><i class="bi bi-bullseye"></i> EatFree Milestone</h2>
             <div id="modeBadge" class="ef-mode-badge ef-mode-subsidized mb-3">
-                <i class="bi bi-lightning"></i> Subsidized Mode Active
+                <i class="bi bi-lightning"></i> EatFree Mode Active
             </div>
-            <p class="ef-counter-label">Meals remaining until FULL FREE mode</p>
+            <p class="ef-counter-label">Meals remaining until FULL TUMMY mode</p>
             <div class="ef-counter-value" id="mealsUntilFree">-</div>
             <div class="ef-progress-bar">
                 <div class="ef-progress-fill" id="milestoneProgress" style="width: 0%"></div>
             </div>
             <p class="small">
-                Current Wallet: <strong id="walletBalance">R-</strong> / 
+                Remaining Meals: <strong id="walletBalance">R-</strong> / 
                 Target: <strong id="targetThreshold">R-</strong>
                 (<span id="percentComplete">0%</span>)
             </p>
@@ -306,7 +306,7 @@
             <div class="row">
                 <div class="col-lg-12 text-center">
                     <h2 class="section-heading">How EatFree Works</h2>
-                    <h3 class="section-subheading">A simple three-step process connecting hearts, vendors, and hungry stomachs.</h3>
+                    <h3 class="section-subheading">A simple three-step process connecting hearts, communities and growling bellies.</h3>
                 </div>
             </div>
             <div class="row text-center">
@@ -315,8 +315,8 @@
                         <div class="ef-service-icon ef-bg-green">
                             <i class="bi bi-heart-fill"></i>
                         </div>
-                        <h4 class="section-heading">1. Donors Give</h4>
-                        <p class="text-muted">Community members and businesses donate funds to sponsor meals. Every donation is tracked transparently.</p>
+                        <h4 class="section-heading">1. Communities Lead</h4>
+                        <p class="text-muted">Community members and businesses donate funds to sponsor meals. Every donation & meal is tracked transparently.</p>
                         <div class="ef-service-flow">
                             <i class="bi bi-arrow-down"></i>
                         </div>
@@ -327,8 +327,8 @@
                         <div class="ef-service-icon ef-bg-gold">
                             <i class="bi bi-shop"></i>
                         </div>
-                        <h4 class="section-heading">2. Vendors Serve</h4>
-                        <p class="text-muted">Local township vendors prepare fresh, nutritious meals using funds from the EatFree pool.</p>
+                        <h4 class="section-heading">2. Chefs Serve</h4>
+                        <p class="text-muted">Local township chefs prepare fresh, nutritious meals using lunch points from the EatFree pool.</p>
                         <div class="ef-service-flow">
                             <i class="bi bi-arrow-down"></i>
                         </div>
@@ -340,7 +340,7 @@
                             <i class="bi bi-people-fill"></i>
                         </div>
                         <h4 class="section-heading">3. Families Eat</h4>
-                        <p class="text-muted">Children and families claim free meals at participating vendors—no stigma, just nourishment.</p>
+                        <p class="text-muted">Children and families claim meals at participating outlets, no stigma, just nourishment.</p>
                     </div>
                 </div>
             </div>
@@ -353,7 +353,7 @@
             <div class="row">
                 <div class="col-lg-12 text-center">
                     <h2 class="section-heading">Our Impact in Action</h2>
-                    <h3 class="section-subheading">Real moments of joy from communities across South Africa.</h3>
+                    <h3 class="section-subheading">Real moments of joy from communities across South Africa and more.</h3>
                 </div>
             </div>
             <div class="row g-4">
@@ -437,7 +437,7 @@
                                     <h4 class="subheading">Foundation & Launch</h4>
                                 </div>
                                 <div class="timeline-body">
-                                    <p class="text-muted">EatFree launches with 50+ vendors in Tshwane, connecting donors directly with township food businesses to create sustainable feeding cycles.</p>
+                                    <p class="text-muted">EatFree launches with 50+ chefs in Tshwane, connecting compassion directly with township food businesses to create sustainable feeding cycles.</p>
                                 </div>
                             </div>
                         </li>
@@ -465,7 +465,7 @@
                                     <h4 class="subheading">Full Free Mode</h4>
                                 </div>
                                 <div class="timeline-body">
-                                    <p class="text-muted">Reaching our milestone target, EatFree transitions to FULL FREE meals for all beneficiaries across South Africa.</p>
+                                    <p class="text-muted">Reaching our milestone target, EatFree transitions to FULL TUMMY meals for all beneficiaries across South Africa.</p>
                                 </div>
                             </div>
                         </li>
@@ -485,7 +485,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12 text-center">
-                    <h2 class="section-heading">Featured Vendors</h2>
+                    <h2 class="section-heading">Featured Chefs</h2>
                     <h3 class="section-subheading">Local heroes serving their communities.</h3>
                 </div>
             </div>
@@ -494,7 +494,7 @@
             </div>
             <div class="text-center mt-5">
                 <a href="vendor-register.html" class="ef-btn ef-btn-outline">
-                    <i class="bi bi-plus-circle me-2"></i>Become a Vendor
+                    <i class="bi bi-plus-circle me-2"></i>Become a Chef
                 </a>
             </div>
         </div>
@@ -506,7 +506,7 @@
             <div class="row">
                 <div class="col-lg-12 text-center">
                     <h2 class="section-heading text-white">Get In Touch</h2>
-                    <h3 class="section-subheading text-white-50">Want to donate, partner, or learn more?</h3>
+                    <h3 class="section-subheading text-white-50">Want to sponsor, partner or learn more?</h3>
                 </div>
             </div>
             <div class="row justify-content-center">
@@ -583,40 +583,74 @@
         // Load dashboard statistics
         async function loadDashboardData() {
             try {
-                const response = await fetch(API_BASE + 'get-dashboard-data.php?type=admin');
+                const response = await fetch(API_BASE + 'get-dashboard-data.php');
                 const result = await response.json();
-                
+        
                 if (result.success) {
                     const data = result.data;
-                    
+        
+                    const wallet = data.wallet || {};
+                    const milestone = data.milestone || {};
+                    const meals = data.meals || {};
+                    const vendors = data.vendors || {};
+                    const settings = data.settings || {};
+        
+                    const totalMealsServed = Number(meals.total || 0);
+                    const activeVendors = Number(vendors.active || 0);
+        
+                    /*
+                     * Historical donations received.
+                     * This should NOT decrease when vouchers are redeemed.
+                     */
+                    const totalReceived = Number(wallet.total_received || 0);
+        
+                    /*
+                     * Current spendable EatFree subsidy pool.
+                     * This SHOULD decrease when vouchers are redeemed.
+                     */
+                    const currentWalletBalance = Number(
+                        milestone.wallet_balance ?? wallet.balance ?? 0
+                    );
+        
+                    const targetThreshold = Number(milestone.target_threshold || 0);
+                    const percentComplete = Number(milestone.percent_complete || 0);
+                    const mealsUntilFree = Number(milestone.meals_until_free || 0);
+        
                     // Update hero stats
-                    document.getElementById('totalMealsServed').textContent = 
-                        data.meals.total.toLocaleString();
-                    document.getElementById('activeVendors').textContent = 
-                        data.vendors.active.toLocaleString();
-                    document.getElementById('totalDonations').textContent = 
-                        'R' + Math.floor(data.wallet.total_received).toLocaleString();
-                    
+                    document.getElementById('totalMealsServed').textContent =
+                        totalMealsServed.toLocaleString();
+        
+                    document.getElementById('activeVendors').textContent =
+                        activeVendors.toLocaleString();
+        
+                    document.getElementById('totalDonations').textContent =
+                        'R' + Math.floor(totalReceived).toLocaleString();
+        
                     // Update milestone counter
-                    const milestone = data.milestone;
-                    document.getElementById('mealsUntilFree').textContent = 
-                        milestone.meals_until_free.toLocaleString();
-                    document.getElementById('walletBalance').textContent = 
-                        'R' + milestone.current_balance.toLocaleString();
-                    document.getElementById('targetThreshold').textContent = 
-                        'R' + milestone.target_threshold.toLocaleString();
-                    document.getElementById('percentComplete').textContent = 
-                        milestone.percent_complete + '%';
-                    document.getElementById('milestoneProgress').style.width = 
-                        milestone.percent_complete + '%';
-                    
+                    document.getElementById('mealsUntilFree').textContent =
+                        mealsUntilFree.toLocaleString();
+        
+                    document.getElementById('walletBalance').textContent =
+                        'R' + Math.floor(currentWalletBalance).toLocaleString();
+        
+                    document.getElementById('targetThreshold').textContent =
+                        'R' + Math.floor(targetThreshold).toLocaleString();
+        
+                    document.getElementById('percentComplete').textContent =
+                        percentComplete + '%';
+        
+                    document.getElementById('milestoneProgress').style.width =
+                        percentComplete + '%';
+        
                     // Update mode badge
                     const modeBadge = document.getElementById('modeBadge');
-                    if (data.settings.current_mode === 'full_free') {
+        
+                    if (modeBadge && settings.current_mode === 'full_free') {
                         modeBadge.className = 'ef-mode-badge ef-mode-free mb-3';
                         modeBadge.innerHTML = '<i class="bi bi-gift"></i> FULL FREE Mode Active!';
                     }
                 }
+        
             } catch (error) {
                 console.error('Failed to load dashboard data:', error);
             }

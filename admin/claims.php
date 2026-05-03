@@ -3,16 +3,31 @@ require_once __DIR__ . '/../config/config.php';
 requireAdminLogin();
 
 $db = getDB();
-$stmt = $db->query("
-    SELECT mc.*, b.full_name as beneficiary_name, v.business_name as vendor_name, vo.voucher_code
-    FROM meal_claims mc
-    JOIN beneficiaries b ON mc.beneficiary_id = b.id
-    JOIN vendors v ON mc.vendor_id = v.id
-    JOIN vouchers vo ON mc.voucher_id = vo.id
-    ORDER BY mc.claimed_at DESC
-    LIMIT 100
-");
-$claims = $stmt->fetchAll();
+        try {
+            $stmt = $db->query("
+                SELECT 
+                    mc.id,
+                    mc.voucher_code,
+                    mc.name,
+                    mc.phone,
+                    mc.vendor_id,
+                    mc.subsidy_amount,
+                    mc.meal_price,
+                    mc.status,
+                    mc.claimed_at,
+                    v.business_name AS vendor_name
+                FROM meal_claims mc
+                LEFT JOIN vendors v ON mc.vendor_id = v.id
+                ORDER BY mc.claimed_at DESC
+                LIMIT 100
+            ");
+        
+            $claims = $stmt->fetchAll();
+        
+        } catch (Exception $e) {
+            error_log("Claims page error: " . $e->getMessage());
+            $claims = [];
+        }
 ?>
 <!DOCTYPE html>
 <html lang="en-ZA">
@@ -45,7 +60,7 @@ $claims = $stmt->fetchAll();
             </div>
             <nav class="py-3">
                 <a href="dashboard.php" class="admin-sidebar-item"><i class="bi bi-speedometer2"></i> Dashboard</a>
-                <a href="vendors.php" class="admin-sidebar-item"><i class="bi bi-shop"></i> Vendors</a>
+                <a href="vendors.php" class="admin-sidebar-item"><i class="bi bi-shop"></i> Shops</a>
                 <a href="withdrawals.php" class="admin-sidebar-item"><i class="bi bi-cash-stack"></i> Withdrawals</a>
                 <a href="donations.php" class="admin-sidebar-item"><i class="bi bi-heart"></i> Donations</a>
                 <a href="claims.php" class="admin-sidebar-item active"><i class="bi bi-ticket-perforated"></i> Meal Claims</a>
@@ -67,7 +82,7 @@ $claims = $stmt->fetchAll();
                             <thead class="table-light">
                                 <tr>
                                     <th>Beneficiary</th>
-                                    <th>Vendor</th>
+                                    <th>Shop</th>
                                     <th>Voucher</th>
                                     <th>Amount</th>
                                     <th>Subsidy</th>

@@ -1,29 +1,27 @@
 <?php
-/**
- * Verify Voucher API
- * Works with current EatFree schema + architecture
- */
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../core/db.php';
+require_once __DIR__ . '/../core/wallet.service.php';
+require_once __DIR__ . '/../core/vendor.service.php';
 
 header('Content-Type: application/json');
 
-// POST only
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(false, null, 'Invalid request method');
 }
 
-// Read JSON
-$input = json_decode(file_get_contents('php://input'), true);
-
-if (!$input) {
-    jsonResponse(false, null, 'Invalid input data');
+//Define Membership Logic
+if ($vendor['status'] !== 'approved' || $vendor['subscription_status'] !== 'active') {
+    die("Shop not fully activated.");
 }
 
-$voucherCode = trim($input['voucher_code'] ?? '');
-$vendorId    = (int)($input['vendor_id'] ?? 0);
+$data = json_decode(file_get_contents("php://input"), true);
 
-if ($voucherCode === '') {
+$voucherCode = trim($data['voucher_code'] ?? '');
+$vendorId    = (int)($data['vendor_id'] ?? 0);
+
+if (!$voucherCode) {
     jsonResponse(false, null, 'Voucher code required');
 }
 
@@ -32,104 +30,93 @@ if ($vendorId <= 0) {
 }
 
 try {
-    $db = getDB();
-    $db->beginTransaction();
+    $pdo = DB::conn();
+    $pdo->beginTransaction();
 
     /**
-     * Get voucher
+     * 1. Lock voucher row (prevents double spend)
      */
-    $stmt = $db->prepare("
-        SELECT 
-            v.*,
-            b.full_name,
-            b.id_number,
-            ven.business_name
+    $stmt = $pdo->prepare("
+        SELECT v.*, b.full_name, ven.business_name
         FROM vouchers v
         INNER JOIN beneficiaries b ON b.id = v.beneficiary_id
         INNER JOIN vendors ven ON ven.id = v.vendor_id
         WHERE v.voucher_code = ?
         LIMIT 1
+        FOR UPDATE
     ");
     $stmt->execute([$voucherCode]);
     $voucher = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$voucher) {
-        $db->rollBack();
-        jsonResponse(false, null, 'Invalid voucher code');
+        throw new Exception("Invalid voucher");
     }
 
     /**
-     * Status checks
+     * 2. Status checks
      */
-    if ($voucher['status'] === 'used') {
-        $db->rollBack();
-        jsonResponse(false, null, 'Voucher already used');
-    }
-
-    if ($voucher['status'] === 'cancelled') {
-        $db->rollBack();
-        jsonResponse(false, null, 'Voucher cancelled');
-    }
-
-    if ($voucher['status'] === 'expired') {
-        $db->rollBack();
-        jsonResponse(false, null, 'Voucher expired');
+    if ($voucher['status'] !== 'pending') {
+        throw new Exception("Voucher already used or invalid");
     }
 
     /**
-     * Expiry check
+     * 3. Expiry check
      */
     if (strtotime($voucher['expires_at']) < time()) {
-        $stmt = $db->prepare("
-            UPDATE vouchers
-            SET status='expired'
-            WHERE id=?
+        $update = $pdo->prepare("
+            UPDATE vouchers SET status='expired' WHERE id=?
         ");
-        $stmt->execute([$voucher['id']]);
+        $update->execute([$voucher['id']]);
 
-        $db->commit();
-        jsonResponse(false, null, 'Voucher expired');
+        throw new Exception("Voucher expired");
     }
 
     /**
-     * Vendor must match voucher vendor
+     * 4. Vendor match check
      */
     if ((int)$voucher['vendor_id'] !== $vendorId) {
-        $db->rollBack();
-        jsonResponse(false, null, 'Voucher not valid for selected vendor');
+        throw new Exception("Invalid vendor for this voucher");
     }
 
     /**
-     * Confirm vendor still active
+     * 5. Vendor must be active
      */
-    $stmt = $db->prepare("
-        SELECT id
-        FROM vendors
+    $stmt = $pdo->prepare("
+        SELECT id FROM vendors 
         WHERE id=? AND status='approved' AND is_active=1
-        LIMIT 1
     ");
     $stmt->execute([$vendorId]);
 
     if (!$stmt->fetch()) {
-        $db->rollBack();
-        jsonResponse(false, null, 'Vendor not active');
+        throw new Exception("Vendor not active");
     }
 
+    $amount = (float)$voucher['subsidy_amount']; // USE REAL VALUE
+
     /**
-     * Mark voucher used
+     * 6. Deduct from donations / global wallet
      */
-    $stmt = $db->prepare("
-        UPDATE vouchers
-        SET status='used',
-            used_at=NOW()
+    WalletService::deductForMeal($amount);
+
+    /**
+     * 7. Credit vendor earnings
+     */
+    VendorService::addEarnings($vendorId, $amount);
+
+    /**
+     * 8. Mark voucher used
+     */
+    $stmt = $pdo->prepare("
+        UPDATE vouchers 
+        SET status='used', used_at=NOW()
         WHERE id=?
     ");
     $stmt->execute([$voucher['id']]);
 
     /**
-     * Insert claim record
+     * 9. Insert meal claim
      */
-    $stmt = $db->prepare("
+    $stmt = $pdo->prepare("
         INSERT INTO meal_claims (
             voucher_id,
             beneficiary_id,
@@ -146,30 +133,14 @@ try {
         $voucher['beneficiary_id'],
         $vendorId,
         $vendorId,
-        $voucher['subsidy_amount'],
+        $amount,
         $voucher['amount']
     ]);
 
     /**
-     * Pay vendor subsidy
-     * Donations/global wallet was already reduced during voucher generation.
-     * So here we only credit vendor wallet.
+     * 10. Update beneficiary stats
      */
-    $stmt = $db->prepare("
-        UPDATE vendors
-        SET total_meals_served = total_meals_served + 1,
-            wallet_balance    = wallet_balance + ?
-        WHERE id = ?
-    ");
-    $stmt->execute([
-        $voucher['subsidy_amount'],
-        $vendorId
-    ]);
-
-    /**
-     * Beneficiary stats
-     */
-    $stmt = $db->prepare("
+    $stmt = $pdo->prepare("
         UPDATE beneficiaries
         SET total_meals_claimed = total_meals_claimed + 1,
             last_claim_date = CURDATE()
@@ -178,61 +149,43 @@ try {
     $stmt->execute([$voucher['beneficiary_id']]);
 
     /**
-     * Meals funded counter only
+     * 11. Update global stats (THIS feeds homepage)
      */
-    $stmt = $db->prepare("
+    $stmt = $pdo->prepare("
         UPDATE global_wallet
-        SET meals_funded = meals_funded + 1
+        SET meals_funded = meals_funded + 1,
+            total_distributed = total_distributed + ?
         WHERE id = 1
     ");
-    $stmt->execute();
+    $stmt->execute([$amount]);
 
     /**
-     * Log transaction
+     * 12. Log transaction
      */
-    $stmt = $db->prepare("
-        INSERT INTO wallet_transactions (
-            transaction_type,
-            amount,
-            reference_id,
-            reference_type,
-            description,
-            balance_after
-        ) VALUES (
-            'vendor_payment',
-            ?,
-            ?,
-            'meal_claim',
-            ?,
-            ?
-        )
-    ");
-
-    $stmt->execute([
-        $voucher['subsidy_amount'],
+    WalletService::logTransaction(
+        'meal_claim',
+        $amount,
         $voucher['id'],
-        'Voucher claimed: ' . $voucher['voucher_code'],
-        getWalletBalance()
-    ]);
+        'voucher',
+        'Voucher claimed: ' . $voucherCode
+    );
 
-    $db->commit();
+    $pdo->commit();
 
     jsonResponse(true, [
-        'voucher_code'      => $voucher['voucher_code'],
-        'beneficiary_name'  => $voucher['full_name'],
-        'vendor_name'       => $voucher['business_name'],
-        'amount'            => (float)$voucher['amount'],
-        'subsidy_amount'    => (float)$voucher['subsidy_amount'],
-        'claimed_at'        => date('Y-m-d H:i:s')
-    ], 'Voucher verified successfully');
+        'voucher_code'     => $voucherCode,
+        'beneficiary_name' => $voucher['full_name'],
+        'vendor_name'      => $voucher['business_name'],
+        'amount'           => $amount
+    ], 'Meal successfully claimed');
 
 } catch (Exception $e) {
 
-    if ($db->inTransaction()) {
-        $db->rollBack();
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
     }
 
-    error_log('Verify voucher error: ' . $e->getMessage());
+    error_log("VERIFY ERROR: " . $e->getMessage());
 
-    jsonResponse(false, null, 'Failed to verify voucher. Please try again.');
+    jsonResponse(false, null, $e->getMessage());
 }

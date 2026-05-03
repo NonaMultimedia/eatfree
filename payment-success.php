@@ -1,47 +1,79 @@
 <?php
 /**
  * Payment Success Page
- * Displays payment confirmation
+ * Displays payment return confirmation.
+ *
+ * FIX 7:
+ * - This page does NOT activate donations or subscriptions.
+ * - Real activation/completion must come from PayFast ITN.
+ * - Shows honest pending/confirmed status based on database state.
  */
 
 require_once __DIR__ . '/config/config.php';
 
-$donationId = $_GET['donation_id'] ?? null;
-$subscriptionId = $_GET['subscription_id'] ?? null;
+$donationId = isset($_GET['donation_id']) ? (int)$_GET['donation_id'] : 0;
+$subscriptionId = isset($_GET['subscription_id']) ? (int)$_GET['subscription_id'] : 0;
 
 $paymentType = '';
 $amount = 0;
 $reference = '';
+$paymentStatus = 'pending';
+$statusLabel = 'Pending PayFast Confirmation';
+$statusColor = 'var(--ef-warning)';
 
-if ($donationId) {
-    $paymentType = 'donation';
     try {
         $db = getDB();
-        $stmt = $db->prepare("SELECT amount, payment_reference, donor_name FROM donations WHERE id = ?");
-        $stmt->execute([$donationId]);
-        $donation = $stmt->fetch();
-        if ($donation) {
-            $amount = $donation['amount'];
-            $reference = $donation['payment_reference'];
+    
+        if ($donationId > 0) {
+            $paymentType = 'donation';
+    
+            $stmt = $db->prepare("
+                SELECT amount, payment_reference, status
+                FROM donations
+                WHERE id = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$donationId]);
+            $donation = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+            if ($donation) {
+                $amount = (float)$donation['amount'];
+                $reference = (string)$donation['payment_reference'];
+                $paymentStatus = (string)$donation['status'];
+    
+                if ($paymentStatus === 'completed') {
+                    $statusLabel = 'Completed';
+                    $statusColor = 'var(--ef-success)';
+                }
+            }
+    
+        } elseif ($subscriptionId > 0) {
+            $paymentType = 'subscription';
+    
+            $stmt = $db->prepare("
+                SELECT total_amount, payment_status, payfast_m_payment_id
+                FROM vendor_subscriptions
+                WHERE id = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$subscriptionId]);
+            $subscription = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+            if ($subscription) {
+                $amount = (float)$subscription['total_amount'];
+                $reference = (string)($subscription['payfast_m_payment_id'] ?: 'SUB-' . $subscriptionId);
+                $paymentStatus = (string)$subscription['payment_status'];
+    
+                if ($paymentStatus === 'paid') {
+                    $statusLabel = 'Completed';
+                    $statusColor = 'var(--ef-success)';
+                }
+            }
         }
+    
     } catch (Exception $e) {
-        error_log("Error fetching donation: " . $e->getMessage());
+        error_log("Payment success page error: " . $e->getMessage());
     }
-} elseif ($subscriptionId) {
-    $paymentType = 'subscription';
-    try {
-        $db = getDB();
-        $stmt = $db->prepare("SELECT total_amount FROM vendor_subscriptions WHERE id = ?");
-        $stmt->execute([$subscriptionId]);
-        $subscription = $stmt->fetch();
-        if ($subscription) {
-            $amount = $subscription['total_amount'];
-            $reference = 'SUB-' . $subscriptionId;
-        }
-    } catch (Exception $e) {
-        error_log("Error fetching subscription: " . $e->getMessage());
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en-ZA">
@@ -163,12 +195,17 @@ if ($donationId) {
             <?php if ($paymentType === 'donation'): ?>
                 <p class="success-message">
                     Thank you for your generous donation! Your contribution will help feed families in communities across South Africa.
-                </p>
+                            </p>
             <?php elseif ($paymentType === 'subscription'): ?>
-                <p class="success-message">
-                    Your subscription is now active! You can start serving meals to your community.
-                </p>
-            <?php else: ?>
+                <?php if ($paymentStatus === 'paid'): ?>
+                    <p class="success-message">
+                        Your membership payment has been confirmed. Your shop features are now active.
+                    </p>
+                <?php else: ?>
+                    <p class="success-message">
+                        Thank you. PayFast has returned you to EatFree. Your membership is still waiting for secure PayFast confirmation and will unlock automatically once confirmed.
+                    </p>
+                <?php endif; ?>
                 <p class="success-message">
                     Your payment has been processed successfully.
                 </p>
@@ -195,7 +232,9 @@ if ($donationId) {
                 </div>
                 <div class="payment-row">
                     <span class="payment-label">Status</span>
-                    <span class="payment-value" style="color: var(--ef-success);">Completed</span>
+                    <span class="payment-value" style="color: <?php echo $statusColor; ?>;">
+                        <?php echo htmlspecialchars($statusLabel); ?>
+                    </span>
                 </div>
             </div>
             

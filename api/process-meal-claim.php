@@ -14,6 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(false, null, 'Invalid request method');
 }
 
+//Define Membership Logic
+if ($vendor['status'] !== 'approved' || $vendor['subscription_status'] !== 'active') {
+    die("Shop not fully activated.");
+}
+
 /**
  * INPUT SUPPORT (POST or JSON)
  */

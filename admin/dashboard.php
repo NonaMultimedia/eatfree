@@ -261,7 +261,7 @@ try {
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
                 <a href="vendors.php" class="admin-sidebar-item">
-                    <i class="bi bi-shop"></i> Vendors
+                    <i class="bi bi-shop"></i> Shops
                 </a>
                 <a href="withdrawals.php" class="admin-sidebar-item">
                     <i class="bi bi-cash-stack"></i> Withdrawals
@@ -303,7 +303,7 @@ try {
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="mb-1"><i class="bi bi-exclamation-triangle me-2"></i>Ecosystem at Capacity</h5>
-                            <p class="mb-0"><?php echo $capacity['waiting_vendors']; ?> vendors waiting for approval. More donations needed.</p>
+                            <p class="mb-0"><?php echo $capacity['waiting_vendors']; ?> New shop request waiting for approval. More donations needed.</p>
                         </div>
                         <a href="ecosystem.php" class="btn btn-dark">View Ecosystem</a>
                     </div>
@@ -319,7 +319,7 @@ try {
                             </div>
                             <div>
                                 <div class="stat-value"><?php echo $summary['total_vendors']; ?></div>
-                                <div class="stat-label">Total Vendors</div>
+                                <div class="stat-label">Total Shops</div>
                             </div>
                         </div>
                     </div>
@@ -330,7 +330,7 @@ try {
                             </div>
                             <div>
                                 <div class="stat-value">R<?php echo number_format($summary['total_donations'], 0); ?></div>
-                                <div class="stat-label">Total Donations</div>
+                                <div class="stat-label">Total Meal Donations</div>
                             </div>
                         </div>
                     </div>
@@ -341,7 +341,7 @@ try {
                             </div>
                             <div>
                                 <div class="stat-value"><?php echo number_format($summary['total_meals_served']); ?></div>
-                                <div class="stat-label">Meals Served</div>
+                                <div class="stat-label">Total Meals Served</div>
                             </div>
                         </div>
                     </div>
@@ -352,7 +352,7 @@ try {
                             </div>
                             <div>
                                 <div class="stat-value">R<?php echo number_format($summary['wallet_balance'], 0); ?></div>
-                                <div class="stat-label">Wallet Balance</div>
+                                <div class="stat-label">Total Subcriber Balance</div>
                             </div>
                         </div>
                     </div>
@@ -376,7 +376,7 @@ try {
                             </div>
                         </div>
                         <div class="col-md-4 text-md-end">
-                            <p class="mb-1">Available Vendor Slots</p>
+                            <p class="mb-1">Available Shop Slots</p>
                             <h4 class="mb-0"><?php echo $capacity['available_slots']; ?></h4>
                             <small class="opacity-75"><?php echo $capacity['waiting_vendors']; ?> in queue</small>
                         </div>
@@ -388,14 +388,14 @@ try {
                     <div class="col-lg-6 mb-4">
                         <div class="admin-card">
                             <div class="admin-card-header">
-                                <span><i class="bi bi-shop me-2"></i>Pending Vendors</span>
+                                <span><i class="bi bi-shop me-2"></i>Pending Shops</span>
                                 <a href="vendors.php" class="btn btn-sm btn-outline-primary">View All</a>
                             </div>
                             <div class="card-body p-0">
                                 <?php if (empty($pendingVendors)): ?>
                                 <div class="p-4 text-center text-muted">
                                     <i class="bi bi-check-circle fs-1 text-success"></i>
-                                    <p class="mt-2">No pending vendors</p>
+                                    <p class="mt-2">No pending Shops</p>
                                 </div>
                                 <?php else: ?>
                                 <table class="table table-hover mb-0">
@@ -412,8 +412,9 @@ try {
                                             <td><?php echo htmlspecialchars($vendor['business_name']); ?></td>
                                             <td><?php echo htmlspecialchars($vendor['city']); ?></td>
                                             <td>
-                                                <button class="table-action-btn btn-approve" onclick="approveVendor(<?php echo $vendor['id']; ?>)">Approve</button>
-                                                <button class="table-action-btn btn-reject" onclick="rejectVendor(<?php echo $vendor['id']; ?>)">Reject</button>
+                                                <a href="vendors.php?status=pending" class="table-action-btn btn-approve text-decoration-none">
+                                                    Review
+                                                </a>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -452,8 +453,9 @@ try {
                                             <td><?php echo htmlspecialchars($withdrawal['business_name']); ?></td>
                                             <td>R<?php echo number_format($withdrawal['amount'], 2); ?></td>
                                             <td>
-                                                <button class="table-action-btn btn-approve" onclick="approveWithdrawal(<?php echo $withdrawal['id']; ?>)">Approve</button>
-                                                <button class="table-action-btn btn-reject" onclick="rejectWithdrawal(<?php echo $withdrawal['id']; ?>)">Reject</button>
+                                                <span class="badge bg-info">In Withdrawal Queue</span>
+                                                <!--<button class="table-action-btn btn-approve" onclick="approveWithdrawal(<?php echo $withdrawal['id']; ?>)">Approve</button>
+                                                <button class="table-action-btn btn-reject" onclick="rejectWithdrawal(<?php echo $withdrawal['id']; ?>)">Reject</button> -->
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -504,8 +506,8 @@ try {
             </div>
         </main>
     </div>
-
-    <!-- Bootstrap JS -->
+    
+     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
@@ -521,46 +523,36 @@ try {
             });
         }
         
-        function approveVendor(id) {
-            if (!confirm('Approve this vendor?')) return;
-        
-            fetch('../api/approve-vendor.php', {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ vendor_id: id })
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(data.message);
-                if (data.success) location.reload();
-            })
-            .catch(err => alert('Request failed'));
-        }
-        
-        function rejectVendor(id) {
-            if (!confirm('Reject this vendor?')) return;
-        
-            fetch('../api/reject-vendor.php', {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ vendor_id: id })
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(data.message);
-                if (data.success) location.reload();
-            })
-            .catch(err => alert('Request failed'));
-        }
-        
         function approveWithdrawal(id){
-            alert('Need withdrawal API next');
+            fetch('../api/admin-withdrawal-action.php', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    withdrawal_id: id,
+                    action: 'approve'
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                alert(res.message);
+                if(res.success) location.reload();
+            });
         }
-        
+                
         function rejectWithdrawal(id){
-            alert('Need withdrawal API next');
+            fetch('../api/admin-withdrawal-action.php', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    withdrawal_id: id,
+                    action: 'reject'
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                alert(res.message);
+                if(res.success) location.reload();
+            });
         }
     </script>
 </body>

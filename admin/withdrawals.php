@@ -92,8 +92,8 @@ $withdrawals = $stmt->fetchAll();
                                     <td><?php echo date('Y-m-d', strtotime($w['created_at'])); ?></td>
                                     <td>
                                         <?php if ($w['status'] === 'pending'): ?>
-                                        <button class="btn btn-sm btn-success" onclick="approve(<?php echo $w['id']; ?>)">Approve</button>
-                                        <button class="btn btn-sm btn-danger" onclick="reject(<?php echo $w['id']; ?>)">Reject</button>
+                                        <button class="btn btn-sm btn-success" onclick="approveWithdrawal(<?php echo $w['id']; ?>)">Approve</button>
+                                        <button class="btn btn-sm btn-danger" onclick="rejectWithdrawal(<?php echo $w['id']; ?>)">Reject</button>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -106,10 +106,40 @@ $withdrawals = $stmt->fetchAll();
         </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        function logout() { fetch('../api/logout.php').then(() => location.href = '/admin-login.php'); }
-        function approve(id) { if(confirm('Approve this withdrawal?')) alert('Approve: ' + id); }
-        function reject(id) { if(confirm('Reject this withdrawal?')) alert('Reject: ' + id); }
+        function logout() {
+            fetch('../api/logout.php')
+                .then(() => location.href = '/admin-login.php');
+        }
+        
+        function approveWithdrawal(id){
+            const btn = event.target;
+            btn.disabled = true;
+        
+            fetch('../api/admin-withdrawal-action.php', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    withdrawal_id: id,
+                    action: 'approve'
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                alert(res.message);
+        
+                if(res.success){
+                    btn.closest('tr')?.remove();
+                } else {
+                    btn.disabled = false;
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                alert('Request failed');
+            });
+        }
     </script>
 </body>
 </html>

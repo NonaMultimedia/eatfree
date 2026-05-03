@@ -214,12 +214,10 @@ try {
        (NO MONEY MOVEMENT HERE)
     ===================================================== */
 
-    $stmt = $db->prepare("
-        UPDATE vendors
-        SET meals_remaining = meals_remaining - 1
-        WHERE id = ?
+   /* $stmt = $db->prepare("
+
     ");
-    $stmt->execute([$vendorId]);
+    $stmt->execute([$vendorId]); */
 
     /* =====================================================
        SUCCESS RESPONSE
